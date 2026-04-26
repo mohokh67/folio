@@ -19,6 +19,17 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) {
   return ref.read(categoriesDaoProvider).getAllCategories();
 });
 
+final dayOccurrencesProvider =
+    Provider.family<List<OccurrenceWithDetails>, DateTime>((ref, date) {
+  return ref.watch(calendarDataProvider).maybeWhen(
+    data: (all) => all.where((o) {
+      final d = o.occurrence.date;
+      return d.year == date.year && d.month == date.month && d.day == date.day;
+    }).toList(),
+    orElse: () => [],
+  );
+});
+
 // Runs the generator for current + adjacent months, then streams current month
 final calendarDataProvider = StreamProvider<List<OccurrenceWithDetails>>((ref) async* {
   final month = ref.watch(currentMonthProvider);
