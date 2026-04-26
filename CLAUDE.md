@@ -1,5 +1,15 @@
 # Folio — Claude Code Instructions
 
+## Starting Work on an Issue
+
+Before creating a feature branch or writing any code:
+
+1. **Always sync `main` first**:
+   ```
+   git checkout main && git pull
+   ```
+2. Then create the feature branch from the updated `main`.
+
 ## Issue Workflow
 
 After completing any GitHub issue:
