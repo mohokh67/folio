@@ -1,30 +1,38 @@
 import 'package:flutter/material.dart';
 
-const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const _weekdaysMon = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const _weekdaysSun = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 class CalendarGrid extends StatelessWidget {
   final DateTime month;
   final Map<DateTime, List<Color>> dotsByDay;
   final void Function(DateTime date) onDayTap;
+  final bool startOnSunday;
 
   const CalendarGrid({
     super.key,
     required this.month,
     required this.dotsByDay,
     required this.onDayTap,
+    this.startOnSunday = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final firstDay = DateTime(month.year, month.month, 1);
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final leadingEmpties = firstDay.weekday - 1;
+    // Mon start: Mon=1→0, ..., Sun=7→6
+    // Sun start: Sun=7→0, Mon=1→1, ..., Sat=6→6
+    final leadingEmpties = startOnSunday
+        ? firstDay.weekday % 7
+        : firstDay.weekday - 1;
+    final weekdays = startOnSunday ? _weekdaysSun : _weekdaysMon;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
-          children: _weekdays
+          children: weekdays
               .map((d) => Expanded(
                     child: Center(
                       child: Text(

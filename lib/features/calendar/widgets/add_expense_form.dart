@@ -14,6 +14,14 @@ const _monthAbbr = [
 
 String _fmtDate(DateTime d) => '${d.day} ${_monthAbbr[d.month]} ${d.year}';
 
+const _reminderOptions = <MapEntry<int?, String>>[
+  MapEntry(null, 'No reminder'),
+  MapEntry(0, 'Same day'),
+  MapEntry(1, '1 day before'),
+  MapEntry(2, '2 days before'),
+  MapEntry(7, '1 week before'),
+];
+
 class AddExpenseForm extends ConsumerStatefulWidget {
   final DateTime initialDate;
 
@@ -35,6 +43,7 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
   int? _categoryId;
   bool _alreadyPaid = false;
   bool _saving = false;
+  int? _reminderDays;
 
   @override
   void initState() {
@@ -75,6 +84,8 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
     final expensesDao = ref.read(expensesDaoProvider);
     final occurrencesDao = ref.read(expenseOccurrencesDaoProvider);
     final generator = ref.read(occurrenceGeneratorProvider);
+    final notifications = ref.read(notificationServiceProvider);
+    final currency = ref.read(settingsRepositoryProvider).currency;
 
     final expenseId = await expensesDao.insertExpense(ExpensesCompanion.insert(
       categoryId: _categoryId!,
@@ -83,15 +94,32 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
       startDate: Value(_startDate),
       endDate: Value(_endDate),
       frequency: Value(_frequency?.name),
+      reminderDays: Value(_reminderDays),
     ));
 
+    List<ExpenseOccurrence> createdOccurrences = [];
+
     if (_frequency == null) {
-      await occurrencesDao.insertOccurrence(ExpenseOccurrencesCompanion.insert(
-        expenseId: expenseId,
-        date: _startDate,
-        note: Value(_notesCtrl.text.isEmpty ? null : _notesCtrl.text),
-        isPaid: Value(_alreadyPaid),
-      ));
+      final id = await occurrencesDao.insertOccurrence(
+        ExpenseOccurrencesCompanion.insert(
+          expenseId: expenseId,
+          date: _startDate,
+          note: Value(_notesCtrl.text.isEmpty ? null : _notesCtrl.text),
+          isPaid: Value(_alreadyPaid),
+        ),
+      );
+      createdOccurrences = [
+        ExpenseOccurrence(
+          id: id,
+          expenseId: expenseId,
+          date: _startDate,
+          amount: null,
+          note: _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
+          isPaid: _alreadyPaid,
+          paidAt: null,
+          isSkipped: false,
+        ),
+      ];
     } else {
       for (var offset = -1; offset <= 1; offset++) {
         await generator.generateForMonth(
@@ -111,6 +139,24 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
             isPaid: Value(_alreadyPaid),
             note: Value(_notesCtrl.text.isEmpty ? null : _notesCtrl.text),
           ));
+        }
+      }
+      createdOccurrences = await occurrencesDao.getOccurrencesByExpense(expenseId);
+    }
+
+    if (_reminderDays != null) {
+      final amount = double.parse(_amountCtrl.text);
+      final name = _nameCtrl.text.trim();
+      for (final occ in createdOccurrences) {
+        if (!occ.isPaid && !occ.isSkipped) {
+          await notifications.scheduleForOccurrence(
+            occurrenceId: occ.id,
+            expenseName: name,
+            amount: occ.amount ?? amount,
+            currency: currency,
+            dueDate: occ.date,
+            reminderDays: _reminderDays!,
+          );
         }
       }
     }
@@ -210,6 +256,26 @@ class _AddExpenseFormState extends ConsumerState<AddExpenseForm> {
                   ),
                 ],
                 onChanged: (v) => setState(() => _frequency = v),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int?>(
+                decoration: const InputDecoration(
+                  labelText: 'Reminder',
+                  border: OutlineInputBorder(),
+                ),
+                value: _reminderDays,
+                items: _reminderOptions
+                    .map((e) => DropdownMenuItem<int?>(
+                          value: e.key,
+                          child: Text(e.value),
+                        ))
+                    .toList(),
+                onChanged: (v) async {
+                  setState(() => _reminderDays = v);
+                  if (v != null) {
+                    await ref.read(notificationServiceProvider).requestPermission();
+                  }
+                },
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(

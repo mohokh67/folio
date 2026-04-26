@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/calendar_providers.dart';
 import '../../../core/providers/database_providers.dart';
+import '../../../core/providers/settings_providers.dart';
 import '../../../data/database/app_database.dart';
 
 const _weekdayNames = [
@@ -84,14 +85,22 @@ class DaySheet extends ConsumerWidget {
     );
   }
 
-  Future<void> _togglePaid(WidgetRef ref, OccurrenceWithDetails o) {
+  Future<void> _togglePaid(WidgetRef ref, OccurrenceWithDetails o) async {
     final dao = ref.read(expenseOccurrencesDaoProvider);
-    return dao.togglePaid(o.occurrence.id, !o.occurrence.isPaid);
+    final markingPaid = !o.occurrence.isPaid;
+    await dao.togglePaid(o.occurrence.id, markingPaid);
+    if (markingPaid) {
+      await ref.read(notificationServiceProvider).cancelForOccurrence(o.occurrence.id);
+    }
   }
 
-  Future<void> _toggleSkip(WidgetRef ref, OccurrenceWithDetails o) {
+  Future<void> _toggleSkip(WidgetRef ref, OccurrenceWithDetails o) async {
     final dao = ref.read(expenseOccurrencesDaoProvider);
-    return dao.toggleSkipped(o.occurrence.id, !o.occurrence.isSkipped);
+    final markingSkipped = !o.occurrence.isSkipped;
+    await dao.toggleSkipped(o.occurrence.id, markingSkipped);
+    if (markingSkipped) {
+      await ref.read(notificationServiceProvider).cancelForOccurrence(o.occurrence.id);
+    }
   }
 
   Future<void> _editAmount(
@@ -182,8 +191,13 @@ class DaySheet extends ConsumerWidget {
     if (confirmed == true) {
       final occDao = ref.read(expenseOccurrencesDaoProvider);
       final expDao = ref.read(expensesDaoProvider);
+      final notifications = ref.read(notificationServiceProvider);
+      final toDelete = await occDao.getFutureUnpaidOccurrences(o.expense.id, effectiveDate);
       await occDao.deleteFutureUnpaidOccurrences(o.expense.id, effectiveDate);
       await expDao.setExpenseEndDate(o.expense.id, effectiveDate);
+      for (final occ in toDelete) {
+        await notifications.cancelForOccurrence(occ.id);
+      }
     }
   }
 

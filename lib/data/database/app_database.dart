@@ -131,6 +131,18 @@ class ExpenseOccurrencesDao extends DatabaseAccessor<AppDatabase>
             ..where((t) => t.expenseId.equals(expenseId)))
           .go();
 
+  Future<List<ExpenseOccurrence>> getFutureUnpaidOccurrences(
+    int expenseId,
+    DateTime afterDate,
+  ) =>
+      (select(expenseOccurrences)
+            ..where((t) =>
+                t.expenseId.equals(expenseId) &
+                t.date.isBiggerThanValue(afterDate) &
+                t.isPaid.equals(false) &
+                t.isSkipped.equals(false)))
+          .get();
+
   Future<int> deleteFutureUnpaidOccurrences(int expenseId, DateTime afterDate) =>
       (delete(expenseOccurrences)
             ..where((t) =>
@@ -139,6 +151,21 @@ class ExpenseOccurrencesDao extends DatabaseAccessor<AppDatabase>
                 t.isPaid.equals(false) &
                 t.isSkipped.equals(false)))
           .go();
+
+  Future<List<OccurrenceWithDetails>> getAllOccurrencesWithDetails() {
+    final q = select(expenseOccurrences).join([
+      innerJoin(expenses, expenses.id.equalsExp(expenseOccurrences.expenseId)),
+      innerJoin(categories, categories.id.equalsExp(expenses.categoryId)),
+    ])
+      ..orderBy([OrderingTerm.asc(expenseOccurrences.date)]);
+    return q.get().then((rows) => rows
+        .map((r) => OccurrenceWithDetails(
+              occurrence: r.readTable(expenseOccurrences),
+              expense: r.readTable(expenses),
+              category: r.readTable(categories),
+            ))
+        .toList());
+  }
 
   Stream<List<OccurrenceWithDetails>> watchOccurrencesWithDetailsByDateRange(
     DateTime from,
@@ -208,7 +235,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -229,6 +256,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await m.addColumn(categories, categories.isCustom);
+      }
+      if (from < 5) {
+        await m.addColumn(expenses, expenses.reminderDays);
       }
     },
   );
