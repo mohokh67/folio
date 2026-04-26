@@ -123,6 +123,7 @@ class AppSettingsDao extends DatabaseAccessor<AppDatabase>
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'folio'));
+  AppDatabase.forTesting(QueryExecutor e) : super(e);
 
   @override
   int get schemaVersion => 1;
