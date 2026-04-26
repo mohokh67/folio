@@ -90,6 +90,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget build(BuildContext context) {
     final currentMonth = ref.watch(currentMonthProvider);
     final calendarAsync = ref.watch(calendarDataProvider);
+    // Keep PageView always mounted so PageController stays attached.
+    // valueOrNull is null while loading → empty dots until data arrives.
+    final dots = _buildDots(calendarAsync.valueOrNull ?? []);
 
     return Scaffold(
       appBar: AppBar(
@@ -105,32 +108,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
         ],
       ),
-      body: calendarAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (occurrences) {
-          final dots = _buildDots(occurrences);
-          return PageView.builder(
-            controller: _pageController,
-            onPageChanged: (page) {
-              ref.read(currentMonthProvider.notifier).state = _pageToMonth(page);
-            },
-            itemBuilder: (context, page) {
-              final month = _pageToMonth(page);
-              final startSunday = ref.read(settingsRepositoryProvider).weekStartSunday;
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(8),
-                child: CalendarGrid(
-                  month: month,
-                  dotsByDay: dots,
-                  onDayTap: (date) => _showDaySheet(context, date),
-                  startOnSunday: startSunday,
-                ),
-              );
-            },
-          );
-        },
-      ),
+      body: calendarAsync.hasError
+          ? Center(child: Text('Error: ${calendarAsync.error}'))
+          : PageView.builder(
+              controller: _pageController,
+              onPageChanged: (page) {
+                ref.read(currentMonthProvider.notifier).state = _pageToMonth(page);
+              },
+              itemBuilder: (context, page) {
+                final month = _pageToMonth(page);
+                final startSunday =
+                    ref.read(settingsRepositoryProvider).weekStartSunday;
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(8),
+                  child: CalendarGrid(
+                    month: month,
+                    dotsByDay: dots,
+                    onDayTap: (date) => _showDaySheet(context, date),
+                    startOnSunday: startSunday,
+                  ),
+                );
+              },
+            ),
     );
   }
 }
