@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:folio/core/router/router.dart';
-import 'package:folio/core/theme/app_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/providers/settings_providers.dart';
+import 'core/router/router.dart';
+import 'core/theme/app_theme.dart';
 
-class App extends StatelessWidget {
+class App extends ConsumerStatefulWidget {
   const App({super.key});
+
+  @override
+  ConsumerState<App> createState() => _AppState();
+}
+
+class _AppState extends ConsumerState<App> {
+  @override
+  void initState() {
+    super.initState();
+    ref.read(settingsRepositoryProvider).load();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +25,7 @@ class App extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      routerConfig: router,
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }
