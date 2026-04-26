@@ -67,6 +67,8 @@ class DaySheet extends ConsumerWidget {
               onTogglePaid: () => _togglePaid(ref, o),
               onToggleSkip: () => _toggleSkip(ref, o),
               onEditAmount: () => _editAmount(context, ref, o),
+              onCancelSeries: () => _cancelSeries(context, ref, o),
+              onEditEndDate: () => _editEndDate(context, ref, o),
             )),
           const SizedBox(height: 8),
           SizedBox(
@@ -125,6 +127,82 @@ class DaySheet extends ConsumerWidget {
       await ref.read(expenseOccurrencesDaoProvider).updateAmount(o.occurrence.id, result);
     }
   }
+
+  Future<void> _cancelSeries(
+    BuildContext context,
+    WidgetRef ref,
+    OccurrenceWithDetails o,
+  ) async {
+    final today = DateTime.now();
+    DateTime effectiveDate = DateTime(today.year, today.month, today.day);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Cancel recurring expense?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'All unpaid occurrences of "${o.expense.name}" after the effective date will be deleted.',
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Effective date'),
+                subtitle: Text(
+                  '${effectiveDate.day}/${effectiveDate.month}/${effectiveDate.year}',
+                ),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: effectiveDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) setState(() => effectiveDate = picked);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Cancel series'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      final occDao = ref.read(expenseOccurrencesDaoProvider);
+      final expDao = ref.read(expensesDaoProvider);
+      await occDao.deleteFutureUnpaidOccurrences(o.expense.id, effectiveDate);
+      await expDao.setExpenseEndDate(o.expense.id, effectiveDate);
+    }
+  }
+
+  Future<void> _editEndDate(
+    BuildContext context,
+    WidgetRef ref,
+    OccurrenceWithDetails o,
+  ) async {
+    final initial = o.expense.endDate ?? date;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      await ref.read(expensesDaoProvider).setExpenseEndDate(o.expense.id, picked);
+    }
+  }
 }
 
 class _OccurrenceTile extends StatelessWidget {
@@ -133,6 +211,8 @@ class _OccurrenceTile extends StatelessWidget {
   final VoidCallback onTogglePaid;
   final VoidCallback onToggleSkip;
   final VoidCallback onEditAmount;
+  final VoidCallback onCancelSeries;
+  final VoidCallback onEditEndDate;
 
   const _OccurrenceTile({
     required this.o,
@@ -140,6 +220,8 @@ class _OccurrenceTile extends StatelessWidget {
     required this.onTogglePaid,
     required this.onToggleSkip,
     required this.onEditAmount,
+    required this.onCancelSeries,
+    required this.onEditEndDate,
   });
 
   @override
@@ -190,6 +272,7 @@ class _OccurrenceTile extends StatelessWidget {
 
   void _showOptions(BuildContext context) {
     final isSkipped = o.occurrence.isSkipped;
+    final isRecurring = o.expense.frequency != null;
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
@@ -213,6 +296,24 @@ class _OccurrenceTile extends StatelessWidget {
                   onEditAmount();
                 },
               ),
+            if (isRecurring) ...[
+              ListTile(
+                leading: const Icon(Icons.event_busy),
+                title: const Text('Cancel recurring series'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onCancelSeries();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.date_range),
+                title: const Text('Change series end date'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onEditEndDate();
+                },
+              ),
+            ],
           ],
         ),
       ),
