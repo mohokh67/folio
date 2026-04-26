@@ -6,5 +6,8 @@ class Expenses extends Table {
   IntColumn get categoryId => integer().references(Categories, #id)();
   TextColumn get name => text()();
   RealColumn get amount => real()();
+  DateTimeColumn get startDate => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  TextColumn get frequency => text().nullable()(); // null = one-off
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }

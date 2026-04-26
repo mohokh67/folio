@@ -7,4 +7,5 @@ class ExpenseOccurrences extends Table {
   DateTimeColumn get date => dateTime()();
   RealColumn get amount => real().nullable()();
   TextColumn get note => text().nullable()();
+  BoolColumn get isPaid => boolean().withDefault(const Constant(false))();
 }

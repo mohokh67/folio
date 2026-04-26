@@ -55,7 +55,19 @@ class ExpensesDao extends DatabaseAccessor<AppDatabase>
 
 // ── Expense Occurrences DAO ───────────────────────────────────────────────
 
-@DriftAccessor(tables: [ExpenseOccurrences])
+class OccurrenceWithDetails {
+  final ExpenseOccurrence occurrence;
+  final Expense expense;
+  final Category category;
+
+  const OccurrenceWithDetails({
+    required this.occurrence,
+    required this.expense,
+    required this.category,
+  });
+}
+
+@DriftAccessor(tables: [ExpenseOccurrences, Expenses, Categories])
 class ExpenseOccurrencesDao extends DatabaseAccessor<AppDatabase>
     with _$ExpenseOccurrencesDaoMixin {
   ExpenseOccurrencesDao(super.db);
@@ -90,6 +102,39 @@ class ExpenseOccurrencesDao extends DatabaseAccessor<AppDatabase>
 
   Future<int> deleteOccurrence(int id) =>
       (delete(expenseOccurrences)..where((t) => t.id.equals(id))).go();
+
+  Stream<List<OccurrenceWithDetails>> watchOccurrencesWithDetailsByDateRange(
+    DateTime from,
+    DateTime to,
+  ) {
+    final q = select(expenseOccurrences).join([
+      innerJoin(expenses, expenses.id.equalsExp(expenseOccurrences.expenseId)),
+      innerJoin(categories, categories.id.equalsExp(expenses.categoryId)),
+    ])
+      ..where(
+        expenseOccurrences.date.isBiggerOrEqualValue(from) &
+            expenseOccurrences.date.isSmallerOrEqualValue(to),
+      );
+    return q.watch().map((rows) => rows
+        .map((r) => OccurrenceWithDetails(
+              occurrence: r.readTable(expenseOccurrences),
+              expense: r.readTable(expenses),
+              category: r.readTable(categories),
+            ))
+        .toList());
+  }
+
+  Future<List<ExpenseOccurrence>> getOccurrencesByExpenseAndDateRange(
+    int expenseId,
+    DateTime from,
+    DateTime to,
+  ) =>
+      (select(expenseOccurrences)
+            ..where((t) =>
+                t.expenseId.equals(expenseId) &
+                t.date.isBiggerOrEqualValue(from) &
+                t.date.isSmallerOrEqualValue(to)))
+          .get();
 }
 
 // ── App Settings DAO ──────────────────────────────────────────────────────
@@ -126,13 +171,21 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       await _seedCategories();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(expenses, expenses.startDate);
+        await m.addColumn(expenses, expenses.endDate);
+        await m.addColumn(expenses, expenses.frequency);
+        await m.addColumn(expenseOccurrences, expenseOccurrences.isPaid);
+      }
     },
   );
 

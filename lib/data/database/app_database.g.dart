@@ -360,6 +360,40 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _frequencyMeta = const VerificationMeta(
+    'frequency',
+  );
+  @override
+  late final GeneratedColumn<String> frequency = GeneratedColumn<String>(
+    'frequency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -378,6 +412,9 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     categoryId,
     name,
     amount,
+    startDate,
+    endDate,
+    frequency,
     createdAt,
   ];
   @override
@@ -419,6 +456,24 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     } else if (isInserting) {
       context.missing(_amountMeta);
     }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    }
+    if (data.containsKey('frequency')) {
+      context.handle(
+        _frequencyMeta,
+        frequency.isAcceptableOrUnknown(data['frequency']!, _frequencyMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -450,6 +505,18 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         DriftSqlType.double,
         data['${effectivePrefix}amount'],
       )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      ),
+      frequency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}frequency'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -468,12 +535,18 @@ class Expense extends DataClass implements Insertable<Expense> {
   final int categoryId;
   final String name;
   final double amount;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final String? frequency;
   final DateTime createdAt;
   const Expense({
     required this.id,
     required this.categoryId,
     required this.name,
     required this.amount,
+    required this.startDate,
+    this.endDate,
+    this.frequency,
     required this.createdAt,
   });
   @override
@@ -483,6 +556,13 @@ class Expense extends DataClass implements Insertable<Expense> {
     map['category_id'] = Variable<int>(categoryId);
     map['name'] = Variable<String>(name);
     map['amount'] = Variable<double>(amount);
+    map['start_date'] = Variable<DateTime>(startDate);
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
+    if (!nullToAbsent || frequency != null) {
+      map['frequency'] = Variable<String>(frequency);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -493,6 +573,13 @@ class Expense extends DataClass implements Insertable<Expense> {
       categoryId: Value(categoryId),
       name: Value(name),
       amount: Value(amount),
+      startDate: Value(startDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      frequency: frequency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(frequency),
       createdAt: Value(createdAt),
     );
   }
@@ -507,6 +594,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       categoryId: serializer.fromJson<int>(json['categoryId']),
       name: serializer.fromJson<String>(json['name']),
       amount: serializer.fromJson<double>(json['amount']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      frequency: serializer.fromJson<String?>(json['frequency']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -518,6 +608,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       'categoryId': serializer.toJson<int>(categoryId),
       'name': serializer.toJson<String>(name),
       'amount': serializer.toJson<double>(amount),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
+      'frequency': serializer.toJson<String?>(frequency),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -527,12 +620,18 @@ class Expense extends DataClass implements Insertable<Expense> {
     int? categoryId,
     String? name,
     double? amount,
+    DateTime? startDate,
+    Value<DateTime?> endDate = const Value.absent(),
+    Value<String?> frequency = const Value.absent(),
     DateTime? createdAt,
   }) => Expense(
     id: id ?? this.id,
     categoryId: categoryId ?? this.categoryId,
     name: name ?? this.name,
     amount: amount ?? this.amount,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate.present ? endDate.value : this.endDate,
+    frequency: frequency.present ? frequency.value : this.frequency,
     createdAt: createdAt ?? this.createdAt,
   );
   Expense copyWithCompanion(ExpensesCompanion data) {
@@ -543,6 +642,9 @@ class Expense extends DataClass implements Insertable<Expense> {
           : this.categoryId,
       name: data.name.present ? data.name.value : this.name,
       amount: data.amount.present ? data.amount.value : this.amount,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      frequency: data.frequency.present ? data.frequency.value : this.frequency,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -554,13 +656,25 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('categoryId: $categoryId, ')
           ..write('name: $name, ')
           ..write('amount: $amount, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('frequency: $frequency, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, categoryId, name, amount, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    categoryId,
+    name,
+    amount,
+    startDate,
+    endDate,
+    frequency,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -569,6 +683,9 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.categoryId == this.categoryId &&
           other.name == this.name &&
           other.amount == this.amount &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.frequency == this.frequency &&
           other.createdAt == this.createdAt);
 }
 
@@ -577,12 +694,18 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<int> categoryId;
   final Value<String> name;
   final Value<double> amount;
+  final Value<DateTime> startDate;
+  final Value<DateTime?> endDate;
+  final Value<String?> frequency;
   final Value<DateTime> createdAt;
   const ExpensesCompanion({
     this.id = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.name = const Value.absent(),
     this.amount = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.frequency = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   ExpensesCompanion.insert({
@@ -590,6 +713,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     required int categoryId,
     required String name,
     required double amount,
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.frequency = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : categoryId = Value(categoryId),
        name = Value(name),
@@ -599,6 +725,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<int>? categoryId,
     Expression<String>? name,
     Expression<double>? amount,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<String>? frequency,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -606,6 +735,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (categoryId != null) 'category_id': categoryId,
       if (name != null) 'name': name,
       if (amount != null) 'amount': amount,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (frequency != null) 'frequency': frequency,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -615,6 +747,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<int>? categoryId,
     Value<String>? name,
     Value<double>? amount,
+    Value<DateTime>? startDate,
+    Value<DateTime?>? endDate,
+    Value<String?>? frequency,
     Value<DateTime>? createdAt,
   }) {
     return ExpensesCompanion(
@@ -622,6 +757,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       categoryId: categoryId ?? this.categoryId,
       name: name ?? this.name,
       amount: amount ?? this.amount,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      frequency: frequency ?? this.frequency,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -641,6 +779,15 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
     }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (frequency.present) {
+      map['frequency'] = Variable<String>(frequency.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -654,6 +801,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('categoryId: $categoryId, ')
           ..write('name: $name, ')
           ..write('amount: $amount, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('frequency: $frequency, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -720,8 +870,28 @@ class $ExpenseOccurrencesTable extends ExpenseOccurrences
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isPaidMeta = const VerificationMeta('isPaid');
   @override
-  List<GeneratedColumn> get $columns => [id, expenseId, date, amount, note];
+  late final GeneratedColumn<bool> isPaid = GeneratedColumn<bool>(
+    'is_paid',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_paid" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    expenseId,
+    date,
+    amount,
+    note,
+    isPaid,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -765,6 +935,12 @@ class $ExpenseOccurrencesTable extends ExpenseOccurrences
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('is_paid')) {
+      context.handle(
+        _isPaidMeta,
+        isPaid.isAcceptableOrUnknown(data['is_paid']!, _isPaidMeta),
+      );
+    }
     return context;
   }
 
@@ -794,6 +970,10 @@ class $ExpenseOccurrencesTable extends ExpenseOccurrences
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       ),
+      isPaid: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_paid'],
+      )!,
     );
   }
 
@@ -810,12 +990,14 @@ class ExpenseOccurrence extends DataClass
   final DateTime date;
   final double? amount;
   final String? note;
+  final bool isPaid;
   const ExpenseOccurrence({
     required this.id,
     required this.expenseId,
     required this.date,
     this.amount,
     this.note,
+    required this.isPaid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -829,6 +1011,7 @@ class ExpenseOccurrence extends DataClass
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    map['is_paid'] = Variable<bool>(isPaid);
     return map;
   }
 
@@ -841,6 +1024,7 @@ class ExpenseOccurrence extends DataClass
           ? const Value.absent()
           : Value(amount),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      isPaid: Value(isPaid),
     );
   }
 
@@ -855,6 +1039,7 @@ class ExpenseOccurrence extends DataClass
       date: serializer.fromJson<DateTime>(json['date']),
       amount: serializer.fromJson<double?>(json['amount']),
       note: serializer.fromJson<String?>(json['note']),
+      isPaid: serializer.fromJson<bool>(json['isPaid']),
     );
   }
   @override
@@ -866,6 +1051,7 @@ class ExpenseOccurrence extends DataClass
       'date': serializer.toJson<DateTime>(date),
       'amount': serializer.toJson<double?>(amount),
       'note': serializer.toJson<String?>(note),
+      'isPaid': serializer.toJson<bool>(isPaid),
     };
   }
 
@@ -875,12 +1061,14 @@ class ExpenseOccurrence extends DataClass
     DateTime? date,
     Value<double?> amount = const Value.absent(),
     Value<String?> note = const Value.absent(),
+    bool? isPaid,
   }) => ExpenseOccurrence(
     id: id ?? this.id,
     expenseId: expenseId ?? this.expenseId,
     date: date ?? this.date,
     amount: amount.present ? amount.value : this.amount,
     note: note.present ? note.value : this.note,
+    isPaid: isPaid ?? this.isPaid,
   );
   ExpenseOccurrence copyWithCompanion(ExpenseOccurrencesCompanion data) {
     return ExpenseOccurrence(
@@ -889,6 +1077,7 @@ class ExpenseOccurrence extends DataClass
       date: data.date.present ? data.date.value : this.date,
       amount: data.amount.present ? data.amount.value : this.amount,
       note: data.note.present ? data.note.value : this.note,
+      isPaid: data.isPaid.present ? data.isPaid.value : this.isPaid,
     );
   }
 
@@ -899,13 +1088,14 @@ class ExpenseOccurrence extends DataClass
           ..write('expenseId: $expenseId, ')
           ..write('date: $date, ')
           ..write('amount: $amount, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('isPaid: $isPaid')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, expenseId, date, amount, note);
+  int get hashCode => Object.hash(id, expenseId, date, amount, note, isPaid);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -914,7 +1104,8 @@ class ExpenseOccurrence extends DataClass
           other.expenseId == this.expenseId &&
           other.date == this.date &&
           other.amount == this.amount &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.isPaid == this.isPaid);
 }
 
 class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
@@ -923,12 +1114,14 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
   final Value<DateTime> date;
   final Value<double?> amount;
   final Value<String?> note;
+  final Value<bool> isPaid;
   const ExpenseOccurrencesCompanion({
     this.id = const Value.absent(),
     this.expenseId = const Value.absent(),
     this.date = const Value.absent(),
     this.amount = const Value.absent(),
     this.note = const Value.absent(),
+    this.isPaid = const Value.absent(),
   });
   ExpenseOccurrencesCompanion.insert({
     this.id = const Value.absent(),
@@ -936,6 +1129,7 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     required DateTime date,
     this.amount = const Value.absent(),
     this.note = const Value.absent(),
+    this.isPaid = const Value.absent(),
   }) : expenseId = Value(expenseId),
        date = Value(date);
   static Insertable<ExpenseOccurrence> custom({
@@ -944,6 +1138,7 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     Expression<DateTime>? date,
     Expression<double>? amount,
     Expression<String>? note,
+    Expression<bool>? isPaid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -951,6 +1146,7 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
       if (date != null) 'date': date,
       if (amount != null) 'amount': amount,
       if (note != null) 'note': note,
+      if (isPaid != null) 'is_paid': isPaid,
     });
   }
 
@@ -960,6 +1156,7 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     Value<DateTime>? date,
     Value<double?>? amount,
     Value<String?>? note,
+    Value<bool>? isPaid,
   }) {
     return ExpenseOccurrencesCompanion(
       id: id ?? this.id,
@@ -967,6 +1164,7 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
       date: date ?? this.date,
       amount: amount ?? this.amount,
       note: note ?? this.note,
+      isPaid: isPaid ?? this.isPaid,
     );
   }
 
@@ -988,6 +1186,9 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (isPaid.present) {
+      map['is_paid'] = Variable<bool>(isPaid.value);
+    }
     return map;
   }
 
@@ -998,7 +1199,8 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
           ..write('expenseId: $expenseId, ')
           ..write('date: $date, ')
           ..write('amount: $amount, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('isPaid: $isPaid')
           ..write(')'))
         .toString();
   }
@@ -1522,6 +1724,9 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       required int categoryId,
       required String name,
       required double amount,
+      Value<DateTime> startDate,
+      Value<DateTime?> endDate,
+      Value<String?> frequency,
       Value<DateTime> createdAt,
     });
 typedef $$ExpensesTableUpdateCompanionBuilder =
@@ -1530,6 +1735,9 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<int> categoryId,
       Value<String> name,
       Value<double> amount,
+      Value<DateTime> startDate,
+      Value<DateTime?> endDate,
+      Value<String?> frequency,
       Value<DateTime> createdAt,
     });
 
@@ -1602,6 +1810,21 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<double> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get frequency => $composableBuilder(
+    column: $table.frequency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1683,6 +1906,21 @@ class $$ExpensesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1729,6 +1967,15 @@ class $$ExpensesTableAnnotationComposer
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<String> get frequency =>
+      $composableBuilder(column: $table.frequency, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1815,12 +2062,18 @@ class $$ExpensesTableTableManager
                 Value<int> categoryId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<double> amount = const Value.absent(),
+                Value<DateTime> startDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<String?> frequency = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ExpensesCompanion(
                 id: id,
                 categoryId: categoryId,
                 name: name,
                 amount: amount,
+                startDate: startDate,
+                endDate: endDate,
+                frequency: frequency,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -1829,12 +2082,18 @@ class $$ExpensesTableTableManager
                 required int categoryId,
                 required String name,
                 required double amount,
+                Value<DateTime> startDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<String?> frequency = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ExpensesCompanion.insert(
                 id: id,
                 categoryId: categoryId,
                 name: name,
                 amount: amount,
+                startDate: startDate,
+                endDate: endDate,
+                frequency: frequency,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -1936,6 +2195,7 @@ typedef $$ExpenseOccurrencesTableCreateCompanionBuilder =
       required DateTime date,
       Value<double?> amount,
       Value<String?> note,
+      Value<bool> isPaid,
     });
 typedef $$ExpenseOccurrencesTableUpdateCompanionBuilder =
     ExpenseOccurrencesCompanion Function({
@@ -1944,6 +2204,7 @@ typedef $$ExpenseOccurrencesTableUpdateCompanionBuilder =
       Value<DateTime> date,
       Value<double?> amount,
       Value<String?> note,
+      Value<bool> isPaid,
     });
 
 final class $$ExpenseOccurrencesTableReferences
@@ -2008,6 +2269,11 @@ class $$ExpenseOccurrencesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isPaid => $composableBuilder(
+    column: $table.isPaid,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ExpensesTableFilterComposer get expenseId {
     final $$ExpensesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2061,6 +2327,11 @@ class $$ExpenseOccurrencesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isPaid => $composableBuilder(
+    column: $table.isPaid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ExpensesTableOrderingComposer get expenseId {
     final $$ExpensesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2105,6 +2376,9 @@ class $$ExpenseOccurrencesTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPaid =>
+      $composableBuilder(column: $table.isPaid, builder: (column) => column);
 
   $$ExpensesTableAnnotationComposer get expenseId {
     final $$ExpensesTableAnnotationComposer composer = $composerBuilder(
@@ -2168,12 +2442,14 @@ class $$ExpenseOccurrencesTableTableManager
                 Value<DateTime> date = const Value.absent(),
                 Value<double?> amount = const Value.absent(),
                 Value<String?> note = const Value.absent(),
+                Value<bool> isPaid = const Value.absent(),
               }) => ExpenseOccurrencesCompanion(
                 id: id,
                 expenseId: expenseId,
                 date: date,
                 amount: amount,
                 note: note,
+                isPaid: isPaid,
               ),
           createCompanionCallback:
               ({
@@ -2182,12 +2458,14 @@ class $$ExpenseOccurrencesTableTableManager
                 required DateTime date,
                 Value<double?> amount = const Value.absent(),
                 Value<String?> note = const Value.absent(),
+                Value<bool> isPaid = const Value.absent(),
               }) => ExpenseOccurrencesCompanion.insert(
                 id: id,
                 expenseId: expenseId,
                 date: date,
                 amount: amount,
                 note: note,
+                isPaid: isPaid,
               ),
           withReferenceMapper: (p0) => p0
               .map(
