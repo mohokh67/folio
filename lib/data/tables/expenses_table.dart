@@ -9,5 +9,6 @@ class Expenses extends Table {
   DateTimeColumn get startDate => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get endDate => dateTime().nullable()();
   TextColumn get frequency => text().nullable()(); // null = one-off
+  IntColumn get reminderDays => integer().nullable()(); // null = no reminder
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }

@@ -20,11 +20,12 @@ class _AppState extends ConsumerState<App> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsRepositoryProvider);
     return MaterialApp.router(
       title: 'Folio',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: settings.themeMode,
       routerConfig: ref.watch(routerProvider),
     );
   }

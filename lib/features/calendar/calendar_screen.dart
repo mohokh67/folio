@@ -117,12 +117,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             },
             itemBuilder: (context, page) {
               final month = _pageToMonth(page);
+              final startSunday = ref.read(settingsRepositoryProvider).weekStartSunday;
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(8),
                 child: CalendarGrid(
                   month: month,
                   dotsByDay: dots,
                   onDayTap: (date) => _showDaySheet(context, date),
+                  startOnSunday: startSunday,
                 ),
               );
             },

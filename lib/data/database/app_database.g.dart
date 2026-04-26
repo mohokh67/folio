@@ -445,6 +445,17 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _reminderDaysMeta = const VerificationMeta(
+    'reminderDays',
+  );
+  @override
+  late final GeneratedColumn<int> reminderDays = GeneratedColumn<int>(
+    'reminder_days',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -466,6 +477,7 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     startDate,
     endDate,
     frequency,
+    reminderDays,
     createdAt,
   ];
   @override
@@ -525,6 +537,15 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         frequency.isAcceptableOrUnknown(data['frequency']!, _frequencyMeta),
       );
     }
+    if (data.containsKey('reminder_days')) {
+      context.handle(
+        _reminderDaysMeta,
+        reminderDays.isAcceptableOrUnknown(
+          data['reminder_days']!,
+          _reminderDaysMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -568,6 +589,10 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         DriftSqlType.string,
         data['${effectivePrefix}frequency'],
       ),
+      reminderDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_days'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -589,6 +614,7 @@ class Expense extends DataClass implements Insertable<Expense> {
   final DateTime startDate;
   final DateTime? endDate;
   final String? frequency;
+  final int? reminderDays;
   final DateTime createdAt;
   const Expense({
     required this.id,
@@ -598,6 +624,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     required this.startDate,
     this.endDate,
     this.frequency,
+    this.reminderDays,
     required this.createdAt,
   });
   @override
@@ -613,6 +640,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     }
     if (!nullToAbsent || frequency != null) {
       map['frequency'] = Variable<String>(frequency);
+    }
+    if (!nullToAbsent || reminderDays != null) {
+      map['reminder_days'] = Variable<int>(reminderDays);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -631,6 +661,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       frequency: frequency == null && nullToAbsent
           ? const Value.absent()
           : Value(frequency),
+      reminderDays: reminderDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reminderDays),
       createdAt: Value(createdAt),
     );
   }
@@ -648,6 +681,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       startDate: serializer.fromJson<DateTime>(json['startDate']),
       endDate: serializer.fromJson<DateTime?>(json['endDate']),
       frequency: serializer.fromJson<String?>(json['frequency']),
+      reminderDays: serializer.fromJson<int?>(json['reminderDays']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -662,6 +696,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       'startDate': serializer.toJson<DateTime>(startDate),
       'endDate': serializer.toJson<DateTime?>(endDate),
       'frequency': serializer.toJson<String?>(frequency),
+      'reminderDays': serializer.toJson<int?>(reminderDays),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -674,6 +709,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     DateTime? startDate,
     Value<DateTime?> endDate = const Value.absent(),
     Value<String?> frequency = const Value.absent(),
+    Value<int?> reminderDays = const Value.absent(),
     DateTime? createdAt,
   }) => Expense(
     id: id ?? this.id,
@@ -683,6 +719,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     startDate: startDate ?? this.startDate,
     endDate: endDate.present ? endDate.value : this.endDate,
     frequency: frequency.present ? frequency.value : this.frequency,
+    reminderDays: reminderDays.present ? reminderDays.value : this.reminderDays,
     createdAt: createdAt ?? this.createdAt,
   );
   Expense copyWithCompanion(ExpensesCompanion data) {
@@ -696,6 +733,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       frequency: data.frequency.present ? data.frequency.value : this.frequency,
+      reminderDays: data.reminderDays.present
+          ? data.reminderDays.value
+          : this.reminderDays,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -710,6 +750,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
           ..write('frequency: $frequency, ')
+          ..write('reminderDays: $reminderDays, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -724,6 +765,7 @@ class Expense extends DataClass implements Insertable<Expense> {
     startDate,
     endDate,
     frequency,
+    reminderDays,
     createdAt,
   );
   @override
@@ -737,6 +779,7 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.startDate == this.startDate &&
           other.endDate == this.endDate &&
           other.frequency == this.frequency &&
+          other.reminderDays == this.reminderDays &&
           other.createdAt == this.createdAt);
 }
 
@@ -748,6 +791,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<DateTime> startDate;
   final Value<DateTime?> endDate;
   final Value<String?> frequency;
+  final Value<int?> reminderDays;
   final Value<DateTime> createdAt;
   const ExpensesCompanion({
     this.id = const Value.absent(),
@@ -757,6 +801,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.startDate = const Value.absent(),
     this.endDate = const Value.absent(),
     this.frequency = const Value.absent(),
+    this.reminderDays = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   ExpensesCompanion.insert({
@@ -767,6 +812,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.startDate = const Value.absent(),
     this.endDate = const Value.absent(),
     this.frequency = const Value.absent(),
+    this.reminderDays = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : categoryId = Value(categoryId),
        name = Value(name),
@@ -779,6 +825,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<DateTime>? startDate,
     Expression<DateTime>? endDate,
     Expression<String>? frequency,
+    Expression<int>? reminderDays,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -789,6 +836,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (startDate != null) 'start_date': startDate,
       if (endDate != null) 'end_date': endDate,
       if (frequency != null) 'frequency': frequency,
+      if (reminderDays != null) 'reminder_days': reminderDays,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -801,6 +849,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<DateTime>? startDate,
     Value<DateTime?>? endDate,
     Value<String?>? frequency,
+    Value<int?>? reminderDays,
     Value<DateTime>? createdAt,
   }) {
     return ExpensesCompanion(
@@ -811,6 +860,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       frequency: frequency ?? this.frequency,
+      reminderDays: reminderDays ?? this.reminderDays,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -839,6 +889,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     if (frequency.present) {
       map['frequency'] = Variable<String>(frequency.value);
     }
+    if (reminderDays.present) {
+      map['reminder_days'] = Variable<int>(reminderDays.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -855,6 +908,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
           ..write('frequency: $frequency, ')
+          ..write('reminderDays: $reminderDays, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1892,6 +1946,7 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       Value<DateTime> startDate,
       Value<DateTime?> endDate,
       Value<String?> frequency,
+      Value<int?> reminderDays,
       Value<DateTime> createdAt,
     });
 typedef $$ExpensesTableUpdateCompanionBuilder =
@@ -1903,6 +1958,7 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<DateTime> startDate,
       Value<DateTime?> endDate,
       Value<String?> frequency,
+      Value<int?> reminderDays,
       Value<DateTime> createdAt,
     });
 
@@ -1990,6 +2046,11 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<String> get frequency => $composableBuilder(
     column: $table.frequency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reminderDays => $composableBuilder(
+    column: $table.reminderDays,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2086,6 +2147,11 @@ class $$ExpensesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get reminderDays => $composableBuilder(
+    column: $table.reminderDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2141,6 +2207,11 @@ class $$ExpensesTableAnnotationComposer
 
   GeneratedColumn<String> get frequency =>
       $composableBuilder(column: $table.frequency, builder: (column) => column);
+
+  GeneratedColumn<int> get reminderDays => $composableBuilder(
+    column: $table.reminderDays,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2230,6 +2301,7 @@ class $$ExpensesTableTableManager
                 Value<DateTime> startDate = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<String?> frequency = const Value.absent(),
+                Value<int?> reminderDays = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ExpensesCompanion(
                 id: id,
@@ -2239,6 +2311,7 @@ class $$ExpensesTableTableManager
                 startDate: startDate,
                 endDate: endDate,
                 frequency: frequency,
+                reminderDays: reminderDays,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -2250,6 +2323,7 @@ class $$ExpensesTableTableManager
                 Value<DateTime> startDate = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<String?> frequency = const Value.absent(),
+                Value<int?> reminderDays = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ExpensesCompanion.insert(
                 id: id,
@@ -2259,6 +2333,7 @@ class $$ExpensesTableTableManager
                 startDate: startDate,
                 endDate: endDate,
                 frequency: frequency,
+                reminderDays: reminderDays,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
