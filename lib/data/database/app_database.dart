@@ -100,6 +100,24 @@ class ExpenseOccurrencesDao extends DatabaseAccessor<AppDatabase>
   Future<bool> updateOccurrence(ExpenseOccurrencesCompanion entry) =>
       update(expenseOccurrences).replace(entry);
 
+  Future<void> togglePaid(int id, bool isPaid) =>
+      (update(expenseOccurrences)..where((t) => t.id.equals(id))).write(
+        ExpenseOccurrencesCompanion(
+          isPaid: Value(isPaid),
+          paidAt: Value(isPaid ? DateTime.now() : null),
+        ),
+      );
+
+  Future<void> toggleSkipped(int id, bool isSkipped) =>
+      (update(expenseOccurrences)..where((t) => t.id.equals(id))).write(
+        ExpenseOccurrencesCompanion(isSkipped: Value(isSkipped)),
+      );
+
+  Future<void> updateAmount(int id, double? amount) =>
+      (update(expenseOccurrences)..where((t) => t.id.equals(id))).write(
+        ExpenseOccurrencesCompanion(amount: Value(amount)),
+      );
+
   Future<int> deleteOccurrence(int id) =>
       (delete(expenseOccurrences)..where((t) => t.id.equals(id))).go();
 
@@ -171,7 +189,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -185,6 +203,10 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(expenses, expenses.endDate);
         await m.addColumn(expenses, expenses.frequency);
         await m.addColumn(expenseOccurrences, expenseOccurrences.isPaid);
+      }
+      if (from < 3) {
+        await m.addColumn(expenseOccurrences, expenseOccurrences.paidAt);
+        await m.addColumn(expenseOccurrences, expenseOccurrences.isSkipped);
       }
     },
   );

@@ -883,6 +883,30 @@ class $ExpenseOccurrencesTable extends ExpenseOccurrences
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _paidAtMeta = const VerificationMeta('paidAt');
+  @override
+  late final GeneratedColumn<DateTime> paidAt = GeneratedColumn<DateTime>(
+    'paid_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isSkippedMeta = const VerificationMeta(
+    'isSkipped',
+  );
+  @override
+  late final GeneratedColumn<bool> isSkipped = GeneratedColumn<bool>(
+    'is_skipped',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_skipped" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -891,6 +915,8 @@ class $ExpenseOccurrencesTable extends ExpenseOccurrences
     amount,
     note,
     isPaid,
+    paidAt,
+    isSkipped,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -941,6 +967,18 @@ class $ExpenseOccurrencesTable extends ExpenseOccurrences
         isPaid.isAcceptableOrUnknown(data['is_paid']!, _isPaidMeta),
       );
     }
+    if (data.containsKey('paid_at')) {
+      context.handle(
+        _paidAtMeta,
+        paidAt.isAcceptableOrUnknown(data['paid_at']!, _paidAtMeta),
+      );
+    }
+    if (data.containsKey('is_skipped')) {
+      context.handle(
+        _isSkippedMeta,
+        isSkipped.isAcceptableOrUnknown(data['is_skipped']!, _isSkippedMeta),
+      );
+    }
     return context;
   }
 
@@ -974,6 +1012,14 @@ class $ExpenseOccurrencesTable extends ExpenseOccurrences
         DriftSqlType.bool,
         data['${effectivePrefix}is_paid'],
       )!,
+      paidAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}paid_at'],
+      ),
+      isSkipped: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_skipped'],
+      )!,
     );
   }
 
@@ -991,6 +1037,8 @@ class ExpenseOccurrence extends DataClass
   final double? amount;
   final String? note;
   final bool isPaid;
+  final DateTime? paidAt;
+  final bool isSkipped;
   const ExpenseOccurrence({
     required this.id,
     required this.expenseId,
@@ -998,6 +1046,8 @@ class ExpenseOccurrence extends DataClass
     this.amount,
     this.note,
     required this.isPaid,
+    this.paidAt,
+    required this.isSkipped,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1012,6 +1062,10 @@ class ExpenseOccurrence extends DataClass
       map['note'] = Variable<String>(note);
     }
     map['is_paid'] = Variable<bool>(isPaid);
+    if (!nullToAbsent || paidAt != null) {
+      map['paid_at'] = Variable<DateTime>(paidAt);
+    }
+    map['is_skipped'] = Variable<bool>(isSkipped);
     return map;
   }
 
@@ -1025,6 +1079,10 @@ class ExpenseOccurrence extends DataClass
           : Value(amount),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       isPaid: Value(isPaid),
+      paidAt: paidAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paidAt),
+      isSkipped: Value(isSkipped),
     );
   }
 
@@ -1040,6 +1098,8 @@ class ExpenseOccurrence extends DataClass
       amount: serializer.fromJson<double?>(json['amount']),
       note: serializer.fromJson<String?>(json['note']),
       isPaid: serializer.fromJson<bool>(json['isPaid']),
+      paidAt: serializer.fromJson<DateTime?>(json['paidAt']),
+      isSkipped: serializer.fromJson<bool>(json['isSkipped']),
     );
   }
   @override
@@ -1052,6 +1112,8 @@ class ExpenseOccurrence extends DataClass
       'amount': serializer.toJson<double?>(amount),
       'note': serializer.toJson<String?>(note),
       'isPaid': serializer.toJson<bool>(isPaid),
+      'paidAt': serializer.toJson<DateTime?>(paidAt),
+      'isSkipped': serializer.toJson<bool>(isSkipped),
     };
   }
 
@@ -1062,6 +1124,8 @@ class ExpenseOccurrence extends DataClass
     Value<double?> amount = const Value.absent(),
     Value<String?> note = const Value.absent(),
     bool? isPaid,
+    Value<DateTime?> paidAt = const Value.absent(),
+    bool? isSkipped,
   }) => ExpenseOccurrence(
     id: id ?? this.id,
     expenseId: expenseId ?? this.expenseId,
@@ -1069,6 +1133,8 @@ class ExpenseOccurrence extends DataClass
     amount: amount.present ? amount.value : this.amount,
     note: note.present ? note.value : this.note,
     isPaid: isPaid ?? this.isPaid,
+    paidAt: paidAt.present ? paidAt.value : this.paidAt,
+    isSkipped: isSkipped ?? this.isSkipped,
   );
   ExpenseOccurrence copyWithCompanion(ExpenseOccurrencesCompanion data) {
     return ExpenseOccurrence(
@@ -1078,6 +1144,8 @@ class ExpenseOccurrence extends DataClass
       amount: data.amount.present ? data.amount.value : this.amount,
       note: data.note.present ? data.note.value : this.note,
       isPaid: data.isPaid.present ? data.isPaid.value : this.isPaid,
+      paidAt: data.paidAt.present ? data.paidAt.value : this.paidAt,
+      isSkipped: data.isSkipped.present ? data.isSkipped.value : this.isSkipped,
     );
   }
 
@@ -1089,13 +1157,16 @@ class ExpenseOccurrence extends DataClass
           ..write('date: $date, ')
           ..write('amount: $amount, ')
           ..write('note: $note, ')
-          ..write('isPaid: $isPaid')
+          ..write('isPaid: $isPaid, ')
+          ..write('paidAt: $paidAt, ')
+          ..write('isSkipped: $isSkipped')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, expenseId, date, amount, note, isPaid);
+  int get hashCode =>
+      Object.hash(id, expenseId, date, amount, note, isPaid, paidAt, isSkipped);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1105,7 +1176,9 @@ class ExpenseOccurrence extends DataClass
           other.date == this.date &&
           other.amount == this.amount &&
           other.note == this.note &&
-          other.isPaid == this.isPaid);
+          other.isPaid == this.isPaid &&
+          other.paidAt == this.paidAt &&
+          other.isSkipped == this.isSkipped);
 }
 
 class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
@@ -1115,6 +1188,8 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
   final Value<double?> amount;
   final Value<String?> note;
   final Value<bool> isPaid;
+  final Value<DateTime?> paidAt;
+  final Value<bool> isSkipped;
   const ExpenseOccurrencesCompanion({
     this.id = const Value.absent(),
     this.expenseId = const Value.absent(),
@@ -1122,6 +1197,8 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     this.amount = const Value.absent(),
     this.note = const Value.absent(),
     this.isPaid = const Value.absent(),
+    this.paidAt = const Value.absent(),
+    this.isSkipped = const Value.absent(),
   });
   ExpenseOccurrencesCompanion.insert({
     this.id = const Value.absent(),
@@ -1130,6 +1207,8 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     this.amount = const Value.absent(),
     this.note = const Value.absent(),
     this.isPaid = const Value.absent(),
+    this.paidAt = const Value.absent(),
+    this.isSkipped = const Value.absent(),
   }) : expenseId = Value(expenseId),
        date = Value(date);
   static Insertable<ExpenseOccurrence> custom({
@@ -1139,6 +1218,8 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     Expression<double>? amount,
     Expression<String>? note,
     Expression<bool>? isPaid,
+    Expression<DateTime>? paidAt,
+    Expression<bool>? isSkipped,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1147,6 +1228,8 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
       if (amount != null) 'amount': amount,
       if (note != null) 'note': note,
       if (isPaid != null) 'is_paid': isPaid,
+      if (paidAt != null) 'paid_at': paidAt,
+      if (isSkipped != null) 'is_skipped': isSkipped,
     });
   }
 
@@ -1157,6 +1240,8 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     Value<double?>? amount,
     Value<String?>? note,
     Value<bool>? isPaid,
+    Value<DateTime?>? paidAt,
+    Value<bool>? isSkipped,
   }) {
     return ExpenseOccurrencesCompanion(
       id: id ?? this.id,
@@ -1165,6 +1250,8 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
       amount: amount ?? this.amount,
       note: note ?? this.note,
       isPaid: isPaid ?? this.isPaid,
+      paidAt: paidAt ?? this.paidAt,
+      isSkipped: isSkipped ?? this.isSkipped,
     );
   }
 
@@ -1189,6 +1276,12 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
     if (isPaid.present) {
       map['is_paid'] = Variable<bool>(isPaid.value);
     }
+    if (paidAt.present) {
+      map['paid_at'] = Variable<DateTime>(paidAt.value);
+    }
+    if (isSkipped.present) {
+      map['is_skipped'] = Variable<bool>(isSkipped.value);
+    }
     return map;
   }
 
@@ -1200,7 +1293,9 @@ class ExpenseOccurrencesCompanion extends UpdateCompanion<ExpenseOccurrence> {
           ..write('date: $date, ')
           ..write('amount: $amount, ')
           ..write('note: $note, ')
-          ..write('isPaid: $isPaid')
+          ..write('isPaid: $isPaid, ')
+          ..write('paidAt: $paidAt, ')
+          ..write('isSkipped: $isSkipped')
           ..write(')'))
         .toString();
   }
@@ -2196,6 +2291,8 @@ typedef $$ExpenseOccurrencesTableCreateCompanionBuilder =
       Value<double?> amount,
       Value<String?> note,
       Value<bool> isPaid,
+      Value<DateTime?> paidAt,
+      Value<bool> isSkipped,
     });
 typedef $$ExpenseOccurrencesTableUpdateCompanionBuilder =
     ExpenseOccurrencesCompanion Function({
@@ -2205,6 +2302,8 @@ typedef $$ExpenseOccurrencesTableUpdateCompanionBuilder =
       Value<double?> amount,
       Value<String?> note,
       Value<bool> isPaid,
+      Value<DateTime?> paidAt,
+      Value<bool> isSkipped,
     });
 
 final class $$ExpenseOccurrencesTableReferences
@@ -2274,6 +2373,16 @@ class $$ExpenseOccurrencesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get paidAt => $composableBuilder(
+    column: $table.paidAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSkipped => $composableBuilder(
+    column: $table.isSkipped,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ExpensesTableFilterComposer get expenseId {
     final $$ExpensesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2332,6 +2441,16 @@ class $$ExpenseOccurrencesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get paidAt => $composableBuilder(
+    column: $table.paidAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSkipped => $composableBuilder(
+    column: $table.isSkipped,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ExpensesTableOrderingComposer get expenseId {
     final $$ExpensesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2379,6 +2498,12 @@ class $$ExpenseOccurrencesTableAnnotationComposer
 
   GeneratedColumn<bool> get isPaid =>
       $composableBuilder(column: $table.isPaid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get paidAt =>
+      $composableBuilder(column: $table.paidAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSkipped =>
+      $composableBuilder(column: $table.isSkipped, builder: (column) => column);
 
   $$ExpensesTableAnnotationComposer get expenseId {
     final $$ExpensesTableAnnotationComposer composer = $composerBuilder(
@@ -2443,6 +2568,8 @@ class $$ExpenseOccurrencesTableTableManager
                 Value<double?> amount = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<bool> isPaid = const Value.absent(),
+                Value<DateTime?> paidAt = const Value.absent(),
+                Value<bool> isSkipped = const Value.absent(),
               }) => ExpenseOccurrencesCompanion(
                 id: id,
                 expenseId: expenseId,
@@ -2450,6 +2577,8 @@ class $$ExpenseOccurrencesTableTableManager
                 amount: amount,
                 note: note,
                 isPaid: isPaid,
+                paidAt: paidAt,
+                isSkipped: isSkipped,
               ),
           createCompanionCallback:
               ({
@@ -2459,6 +2588,8 @@ class $$ExpenseOccurrencesTableTableManager
                 Value<double?> amount = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<bool> isPaid = const Value.absent(),
+                Value<DateTime?> paidAt = const Value.absent(),
+                Value<bool> isSkipped = const Value.absent(),
               }) => ExpenseOccurrencesCompanion.insert(
                 id: id,
                 expenseId: expenseId,
@@ -2466,6 +2597,8 @@ class $$ExpenseOccurrencesTableTableManager
                 amount: amount,
                 note: note,
                 isPaid: isPaid,
+                paidAt: paidAt,
+                isSkipped: isSkipped,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -61,12 +61,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return map;
   }
 
-  void _showDaySheet(BuildContext context, DateTime date, List<OccurrenceWithDetails> all) {
-    final dayData = all.where((o) {
-      final d = o.occurrence.date;
-      return d.year == date.year && d.month == date.month && d.day == date.day;
-    }).toList();
-
+  void _showDaySheet(BuildContext context, DateTime date) {
     final currency = ref.read(settingsRepositoryProvider).currency;
 
     showModalBottomSheet(
@@ -74,7 +69,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       isScrollControlled: true,
       builder: (_) => DaySheet(
         date: date,
-        occurrences: dayData,
         currency: currency,
         onAdd: () {
           Navigator.pop(context);
@@ -128,7 +122,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 child: CalendarGrid(
                   month: month,
                   dotsByDay: dots,
-                  onDayTap: (date) => _showDaySheet(context, date, occurrences),
+                  onDayTap: (date) => _showDaySheet(context, date),
                 ),
               );
             },
