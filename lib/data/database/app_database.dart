@@ -49,6 +49,11 @@ class ExpensesDao extends DatabaseAccessor<AppDatabase>
   Future<bool> updateExpense(ExpensesCompanion entry) =>
       update(expenses).replace(entry);
 
+  Future<void> setExpenseEndDate(int id, DateTime? endDate) =>
+      (update(expenses)..where((t) => t.id.equals(id))).write(
+        ExpensesCompanion(endDate: Value(endDate)),
+      );
+
   Future<int> deleteExpense(int id) =>
       (delete(expenses)..where((t) => t.id.equals(id))).go();
 }
@@ -120,6 +125,15 @@ class ExpenseOccurrencesDao extends DatabaseAccessor<AppDatabase>
 
   Future<int> deleteOccurrence(int id) =>
       (delete(expenseOccurrences)..where((t) => t.id.equals(id))).go();
+
+  Future<int> deleteFutureUnpaidOccurrences(int expenseId, DateTime afterDate) =>
+      (delete(expenseOccurrences)
+            ..where((t) =>
+                t.expenseId.equals(expenseId) &
+                t.date.isBiggerThanValue(afterDate) &
+                t.isPaid.equals(false) &
+                t.isSkipped.equals(false)))
+          .go();
 
   Stream<List<OccurrenceWithDetails>> watchOccurrencesWithDetailsByDateRange(
     DateTime from,
