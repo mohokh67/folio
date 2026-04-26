@@ -15,8 +15,8 @@ final occurrenceGeneratorProvider = Provider<OccurrenceGeneratorService>((ref) {
   );
 });
 
-final categoriesProvider = FutureProvider<List<Category>>((ref) {
-  return ref.read(categoriesDaoProvider).getAllCategories();
+final categoriesProvider = StreamProvider<List<Category>>((ref) {
+  return ref.watch(categoriesDaoProvider).watchAllCategories();
 });
 
 final dayOccurrencesProvider =

@@ -66,8 +66,23 @@ class $CategoriesTable extends Categories
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _isCustomMeta = const VerificationMeta(
+    'isCustom',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, emoji, color];
+  late final GeneratedColumn<bool> isCustom = GeneratedColumn<bool>(
+    'is_custom',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_custom" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, emoji, color, isCustom];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -107,6 +122,12 @@ class $CategoriesTable extends Categories
     } else if (isInserting) {
       context.missing(_colorMeta);
     }
+    if (data.containsKey('is_custom')) {
+      context.handle(
+        _isCustomMeta,
+        isCustom.isAcceptableOrUnknown(data['is_custom']!, _isCustomMeta),
+      );
+    }
     return context;
   }
 
@@ -132,6 +153,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.int,
         data['${effectivePrefix}color'],
       )!,
+      isCustom: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_custom'],
+      )!,
     );
   }
 
@@ -146,11 +171,13 @@ class Category extends DataClass implements Insertable<Category> {
   final String name;
   final String emoji;
   final int color;
+  final bool isCustom;
   const Category({
     required this.id,
     required this.name,
     required this.emoji,
     required this.color,
+    required this.isCustom,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -159,6 +186,7 @@ class Category extends DataClass implements Insertable<Category> {
     map['name'] = Variable<String>(name);
     map['emoji'] = Variable<String>(emoji);
     map['color'] = Variable<int>(color);
+    map['is_custom'] = Variable<bool>(isCustom);
     return map;
   }
 
@@ -168,6 +196,7 @@ class Category extends DataClass implements Insertable<Category> {
       name: Value(name),
       emoji: Value(emoji),
       color: Value(color),
+      isCustom: Value(isCustom),
     );
   }
 
@@ -181,6 +210,7 @@ class Category extends DataClass implements Insertable<Category> {
       name: serializer.fromJson<String>(json['name']),
       emoji: serializer.fromJson<String>(json['emoji']),
       color: serializer.fromJson<int>(json['color']),
+      isCustom: serializer.fromJson<bool>(json['isCustom']),
     );
   }
   @override
@@ -191,22 +221,30 @@ class Category extends DataClass implements Insertable<Category> {
       'name': serializer.toJson<String>(name),
       'emoji': serializer.toJson<String>(emoji),
       'color': serializer.toJson<int>(color),
+      'isCustom': serializer.toJson<bool>(isCustom),
     };
   }
 
-  Category copyWith({int? id, String? name, String? emoji, int? color}) =>
-      Category(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        emoji: emoji ?? this.emoji,
-        color: color ?? this.color,
-      );
+  Category copyWith({
+    int? id,
+    String? name,
+    String? emoji,
+    int? color,
+    bool? isCustom,
+  }) => Category(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    emoji: emoji ?? this.emoji,
+    color: color ?? this.color,
+    isCustom: isCustom ?? this.isCustom,
+  );
   Category copyWithCompanion(CategoriesCompanion data) {
     return Category(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       emoji: data.emoji.present ? data.emoji.value : this.emoji,
       color: data.color.present ? data.color.value : this.color,
+      isCustom: data.isCustom.present ? data.isCustom.value : this.isCustom,
     );
   }
 
@@ -216,13 +254,14 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('emoji: $emoji, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('isCustom: $isCustom')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, emoji, color);
+  int get hashCode => Object.hash(id, name, emoji, color, isCustom);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -230,7 +269,8 @@ class Category extends DataClass implements Insertable<Category> {
           other.id == this.id &&
           other.name == this.name &&
           other.emoji == this.emoji &&
-          other.color == this.color);
+          other.color == this.color &&
+          other.isCustom == this.isCustom);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
@@ -238,17 +278,20 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String> name;
   final Value<String> emoji;
   final Value<int> color;
+  final Value<bool> isCustom;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.emoji = const Value.absent(),
     this.color = const Value.absent(),
+    this.isCustom = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     required String emoji,
     required int color,
+    this.isCustom = const Value.absent(),
   }) : name = Value(name),
        emoji = Value(emoji),
        color = Value(color);
@@ -257,12 +300,14 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Expression<String>? name,
     Expression<String>? emoji,
     Expression<int>? color,
+    Expression<bool>? isCustom,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (emoji != null) 'emoji': emoji,
       if (color != null) 'color': color,
+      if (isCustom != null) 'is_custom': isCustom,
     });
   }
 
@@ -271,12 +316,14 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<String>? name,
     Value<String>? emoji,
     Value<int>? color,
+    Value<bool>? isCustom,
   }) {
     return CategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       emoji: emoji ?? this.emoji,
       color: color ?? this.color,
+      isCustom: isCustom ?? this.isCustom,
     );
   }
 
@@ -295,6 +342,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (color.present) {
       map['color'] = Variable<int>(color.value);
     }
+    if (isCustom.present) {
+      map['is_custom'] = Variable<bool>(isCustom.value);
+    }
     return map;
   }
 
@@ -304,7 +354,8 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('emoji: $emoji, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('isCustom: $isCustom')
           ..write(')'))
         .toString();
   }
@@ -1542,6 +1593,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       required String name,
       required String emoji,
       required int color,
+      Value<bool> isCustom,
     });
 typedef $$CategoriesTableUpdateCompanionBuilder =
     CategoriesCompanion Function({
@@ -1549,6 +1601,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> emoji,
       Value<int> color,
+      Value<bool> isCustom,
     });
 
 final class $$CategoriesTableReferences
@@ -1601,6 +1654,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<int> get color => $composableBuilder(
     column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCustom => $composableBuilder(
+    column: $table.isCustom,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1658,6 +1716,11 @@ class $$CategoriesTableOrderingComposer
     column: $table.color,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isCustom => $composableBuilder(
+    column: $table.isCustom,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -1680,6 +1743,9 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<bool> get isCustom =>
+      $composableBuilder(column: $table.isCustom, builder: (column) => column);
 
   Expression<T> expensesRefs<T extends Object>(
     Expression<T> Function($$ExpensesTableAnnotationComposer a) f,
@@ -1739,11 +1805,13 @@ class $$CategoriesTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> emoji = const Value.absent(),
                 Value<int> color = const Value.absent(),
+                Value<bool> isCustom = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
                 name: name,
                 emoji: emoji,
                 color: color,
+                isCustom: isCustom,
               ),
           createCompanionCallback:
               ({
@@ -1751,11 +1819,13 @@ class $$CategoriesTableTableManager
                 required String name,
                 required String emoji,
                 required int color,
+                Value<bool> isCustom = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
                 emoji: emoji,
                 color: color,
+                isCustom: isCustom,
               ),
           withReferenceMapper: (p0) => p0
               .map(

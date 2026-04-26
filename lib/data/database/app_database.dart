@@ -126,6 +126,11 @@ class ExpenseOccurrencesDao extends DatabaseAccessor<AppDatabase>
   Future<int> deleteOccurrence(int id) =>
       (delete(expenseOccurrences)..where((t) => t.id.equals(id))).go();
 
+  Future<int> deleteOccurrencesByExpense(int expenseId) =>
+      (delete(expenseOccurrences)
+            ..where((t) => t.expenseId.equals(expenseId)))
+          .go();
+
   Future<int> deleteFutureUnpaidOccurrences(int expenseId, DateTime afterDate) =>
       (delete(expenseOccurrences)
             ..where((t) =>
@@ -203,7 +208,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -221,6 +226,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await m.addColumn(expenseOccurrences, expenseOccurrences.paidAt);
         await m.addColumn(expenseOccurrences, expenseOccurrences.isSkipped);
+      }
+      if (from < 4) {
+        await m.addColumn(categories, categories.isCustom);
       }
     },
   );

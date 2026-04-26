@@ -5,4 +5,5 @@ class Categories extends Table {
   TextColumn get name => text()();
   TextColumn get emoji => text()();
   IntColumn get color => integer()();
+  BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
 }
